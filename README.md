@@ -13,6 +13,7 @@ El repositorio incluye el **diagrama entidad-relación** (editable) y el **scrip
 | [`clinica_veterinaria_citas.drawio`](clinica_veterinaria_citas.drawio) | Diagrama entidad-relación (ER), editable en [draw.io / diagrams.net](https://app.diagrams.net) |
 | [`clinica_veterinaria_citas.sql`](clinica_veterinaria_citas.sql) | Script DDL para crear la base de datos en **MySQL / MariaDB** (incluye datos de ejemplo) |
 | [`clinica_veterinaria_citas_postgresql.sql`](clinica_veterinaria_citas_postgresql.sql) | Mismo esquema para **PostgreSQL 12+** (tipos `ENUM`, `SERIAL`, `TIMESTAMP`) |
+| [`clinica_veterinaria_citas_postgresql_dbeaver.sql`](clinica_veterinaria_citas_postgresql_dbeaver.sql) | Versión para **DBeaver**: re-ejecutable, sin `CREATE DATABASE`/`\c` (créala en la UI y corre con `Alt+X`) |
 
 ---
 
