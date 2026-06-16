@@ -12,6 +12,7 @@ El repositorio incluye el **diagrama entidad-relación** (editable) y el **scrip
 |---------|-------------|
 | [`clinica_veterinaria_citas.drawio`](clinica_veterinaria_citas.drawio) | Diagrama entidad-relación (ER), editable en [draw.io / diagrams.net](https://app.diagrams.net) |
 | [`clinica_veterinaria_citas.sql`](clinica_veterinaria_citas.sql) | Script DDL para crear la base de datos en **MySQL / MariaDB** (incluye datos de ejemplo) |
+| [`clinica_veterinaria_citas_postgresql.sql`](clinica_veterinaria_citas_postgresql.sql) | Mismo esquema para **PostgreSQL 12+** (tipos `ENUM`, `SERIAL`, `TIMESTAMP`) |
 
 ---
 
@@ -155,25 +156,34 @@ Cualquiera de estas opciones:
 
 ---
 
-## 🛠️ Crear la base de datos (`.sql`)
+## 🛠️ Crear la base de datos
 
-**Requisitos:** MySQL 8+ o MariaDB 10.x.
+Hay dos versiones con el **mismo esquema**; elige según tu motor:
 
-El script ya crea la base `clinica_veterinaria` (UTF-8 `utf8mb4`), todas las tablas con sus llaves e índices, y carga algunos datos de ejemplo.
+| Motor | Archivo |
+|-------|---------|
+| MySQL 8+ / MariaDB 10.x | `clinica_veterinaria_citas.sql` |
+| PostgreSQL 12+ | `clinica_veterinaria_citas_postgresql.sql` |
 
-### Opción A — Línea de comandos
+Ambos crean la base `clinica_veterinaria`, las 12 tablas con sus llaves e índices, y cargan datos de ejemplo.
+
+### 🐬 MySQL / MariaDB
 ```bash
 mysql -u root -p < clinica_veterinaria_citas.sql
 ```
+O en **MySQL Workbench** / **phpMyAdmin** / **DBeaver**: abre el archivo y ejecútalo completo.
 
-### Opción B — Interfaz gráfica
-En **MySQL Workbench**, **DBeaver** o **phpMyAdmin**: abre `clinica_veterinaria_citas.sql` y ejecútalo completo.
+### 🐘 PostgreSQL
+```bash
+psql -U postgres -f clinica_veterinaria_citas_postgresql.sql
+```
+En **pgAdmin** / **DBeaver**: conéctate a `clinica_veterinaria` y ejecuta el script (omite la línea `\c`, propia de `psql`).
 
 ### Comprobar
 ```sql
-USE clinica_veterinaria;
-SHOW TABLES;          -- 12 tablas
-SELECT * FROM servicio;
+-- MySQL:       USE clinica_veterinaria;
+-- PostgreSQL:  \c clinica_veterinaria   (en psql)
+SELECT * FROM servicio;   -- 4 filas de ejemplo
 ```
 
 ---
