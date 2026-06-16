@@ -1,83 +1,63 @@
 -- =====================================================================
 --  CLINICA VETERINARIA - Gestion de Citas   |   PostgreSQL (version DBeaver)
 -- ---------------------------------------------------------------------
---  COMO USARLO EN DBEAVER:
---    1. Crea la base "clinica_veterinaria" (clic derecho en la conexion
---       del puerto 5434 -> Create New Database).
---    2. Abre un SQL Editor SOBRE la base clinica_veterinaria.
---    3. Selecciona TODO con Ctrl+A y ejecuta con  Alt+X  (Execute SQL Script).
---       *** NO uses Ctrl+Enter: ese solo corre UNA sentencia y por eso
---           fallan los tipos ENUM / las llaves foraneas. ***
+--  Esta version NO usa CREATE TYPE: los antiguos ENUM se reemplazaron por
+--  VARCHAR + CHECK, asi NINGUNA tabla depende de un tipo creado aparte.
+--  -> Puedes ejecutar todo de una (Alt+X) o tabla por tabla; ya no falla
+--     por el orden de los tipos.
 --
---  Este script es RE-EJECUTABLE: borra los objetos previos antes de
---  recrearlos, asi que limpia cualquier intento a medias.
---  No lleva CREATE DATABASE ni \c porque ya estas dentro de la base.
+--  USO EN DBEAVER: crea la base clinica_veterinaria, abre un SQL Editor
+--  sobre ella, y ejecuta. Re-ejecutable (borra lo previo antes de crear).
+--  No lleva CREATE DATABASE ni \c (ya estas dentro de la base).
 -- =====================================================================
 
--- 1) LIMPIEZA (por si quedaron objetos de un intento anterior) ---------
-DROP TABLE IF EXISTS factura        CASCADE;
-DROP TABLE IF EXISTS cita_servicio  CASCADE;
-DROP TABLE IF EXISTS tratamiento    CASCADE;
-DROP TABLE IF EXISTS consulta       CASCADE;
-DROP TABLE IF EXISTS vacuna         CASCADE;
-DROP TABLE IF EXISTS cita           CASCADE;
-DROP TABLE IF EXISTS servicio       CASCADE;
-DROP TABLE IF EXISTS mascota        CASCADE;
-DROP TABLE IF EXISTS veterinario    CASCADE;
-DROP TABLE IF EXISTS cliente        CASCADE;
-DROP TABLE IF EXISTS raza           CASCADE;
-DROP TABLE IF EXISTS especie        CASCADE;
+-- 1) LIMPIEZA (por si quedaron objetos de un intento anterior)
+DROP TABLE IF EXISTS factura       CASCADE;
+DROP TABLE IF EXISTS cita_servicio CASCADE;
+DROP TABLE IF EXISTS tratamiento   CASCADE;
+DROP TABLE IF EXISTS consulta      CASCADE;
+DROP TABLE IF EXISTS vacuna        CASCADE;
+DROP TABLE IF EXISTS cita          CASCADE;
+DROP TABLE IF EXISTS servicio      CASCADE;
+DROP TABLE IF EXISTS mascota       CASCADE;
+DROP TABLE IF EXISTS veterinario   CASCADE;
+DROP TABLE IF EXISTS cliente       CASCADE;
+DROP TABLE IF EXISTS raza          CASCADE;
+DROP TABLE IF EXISTS especie       CASCADE;
 
-DROP TYPE IF EXISTS enum_estado_pago;
-DROP TYPE IF EXISTS enum_estado_cita;
-DROP TYPE IF EXISTS enum_tipo_consulta;
-DROP TYPE IF EXISTS enum_sexo;
-DROP TYPE IF EXISTS enum_tipo_documento;
-DROP TYPE IF EXISTS enum_tamano;
-
--- 2) TIPOS ENUM --------------------------------------------------------
-CREATE TYPE enum_tamano          AS ENUM ('PEQUENO','MEDIANO','GRANDE');
-CREATE TYPE enum_tipo_documento  AS ENUM ('CC','CE','TI','PAS','NIT');
-CREATE TYPE enum_sexo            AS ENUM ('M','H');
-CREATE TYPE enum_tipo_consulta   AS ENUM ('GENERAL','VACUNACION','CIRUGIA','CONTROL','URGENCIA','ESTETICA');
-CREATE TYPE enum_estado_cita     AS ENUM ('PROGRAMADA','CONFIRMADA','EN_CURSO','ATENDIDA','CANCELADA','NO_ASISTIO');
-CREATE TYPE enum_estado_pago     AS ENUM ('PENDIENTE','PAGADA','ANULADA');
-
--- 3) TABLAS ------------------------------------------------------------
--- Catalogos
+-- 2) TABLAS  (los ENUM ahora son VARCHAR + CHECK)
 CREATE TABLE especie (
-  id_especie   SERIAL PRIMARY KEY,
-  nombre       VARCHAR(50)  NOT NULL UNIQUE,
-  descripcion  VARCHAR(255)
+  id_especie  SERIAL PRIMARY KEY,
+  nombre      VARCHAR(50) NOT NULL UNIQUE,
+  descripcion VARCHAR(255)
 );
 
 CREATE TABLE raza (
-  id_raza      SERIAL PRIMARY KEY,
-  id_especie   INT NOT NULL,
-  nombre       VARCHAR(80) NOT NULL,
-  tamano       enum_tamano DEFAULT 'MEDIANO',
+  id_raza    SERIAL PRIMARY KEY,
+  id_especie INT NOT NULL,
+  nombre     VARCHAR(80) NOT NULL,
+  tamano     VARCHAR(10) DEFAULT 'MEDIANO' CHECK (tamano IN ('PEQUENO','MEDIANO','GRANDE')),
   CONSTRAINT fk_raza_especie FOREIGN KEY (id_especie) REFERENCES especie(id_especie)
 );
 
--- Entidades base
 CREATE TABLE cliente (
   id_cliente     SERIAL PRIMARY KEY,
-  tipo_documento enum_tipo_documento NOT NULL DEFAULT 'CC',
-  num_documento  VARCHAR(20)  NOT NULL UNIQUE,
-  nombre         VARCHAR(80)  NOT NULL,
-  apellido       VARCHAR(80)  NOT NULL,
+  tipo_documento VARCHAR(5) NOT NULL DEFAULT 'CC' CHECK (tipo_documento IN ('CC','CE','TI','PAS','NIT')),
+  num_documento  VARCHAR(20) NOT NULL UNIQUE,
+  nombre         VARCHAR(80) NOT NULL,
+  apellido       VARCHAR(80) NOT NULL,
   telefono       VARCHAR(20),
   email          VARCHAR(120),
   direccion      VARCHAR(180),
-  fecha_registro TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+  fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE veterinario (
   id_veterinario SERIAL PRIMARY KEY,
-  nombre         VARCHAR(80)  NOT NULL,
-  apellido       VARCHAR(80)  NOT NULL,
-  num_documento  VARCHAR(20)  NOT NULL UNIQUE,
-  num_licencia   VARCHAR(30)  NOT NULL UNIQUE,
+  nombre         VARCHAR(80) NOT NULL,
+  apellido       VARCHAR(80) NOT NULL,
+  num_documento  VARCHAR(20) NOT NULL UNIQUE,
+  num_licencia   VARCHAR(30) NOT NULL UNIQUE,
   especialidad   VARCHAR(80),
   telefono       VARCHAR(20),
   email          VARCHAR(120)
@@ -88,7 +68,7 @@ CREATE TABLE mascota (
   id_cliente       INT NOT NULL,
   id_raza          INT,
   nombre           VARCHAR(60) NOT NULL,
-  sexo             enum_sexo NOT NULL,
+  sexo             VARCHAR(1) NOT NULL CHECK (sexo IN ('M','H')),
   fecha_nacimiento DATE,
   peso_kg          DECIMAL(5,2),
   color            VARCHAR(40),
@@ -99,23 +79,24 @@ CREATE TABLE mascota (
 );
 
 CREATE TABLE servicio (
-  id_servicio   SERIAL PRIMARY KEY,
-  nombre        VARCHAR(100) NOT NULL,
-  descripcion   VARCHAR(255),
-  categoria     VARCHAR(60),
-  precio        DECIMAL(10,2) NOT NULL DEFAULT 0,
-  duracion_min  INT NOT NULL DEFAULT 30
+  id_servicio  SERIAL PRIMARY KEY,
+  nombre       VARCHAR(100) NOT NULL,
+  descripcion  VARCHAR(255),
+  categoria    VARCHAR(60),
+  precio       DECIMAL(10,2) NOT NULL DEFAULT 0,
+  duracion_min INT NOT NULL DEFAULT 30
 );
 
--- Nucleo: CITA
 CREATE TABLE cita (
   id_cita        SERIAL PRIMARY KEY,
   id_mascota     INT NOT NULL,
   id_veterinario INT NOT NULL,
   fecha_hora     TIMESTAMP NOT NULL,
   motivo         VARCHAR(180),
-  tipo_consulta  enum_tipo_consulta NOT NULL DEFAULT 'GENERAL',
-  estado         enum_estado_cita   NOT NULL DEFAULT 'PROGRAMADA',
+  tipo_consulta  VARCHAR(20) NOT NULL DEFAULT 'GENERAL'
+                   CHECK (tipo_consulta IN ('GENERAL','VACUNACION','CIRUGIA','CONTROL','URGENCIA','ESTETICA')),
+  estado         VARCHAR(15) NOT NULL DEFAULT 'PROGRAMADA'
+                   CHECK (estado IN ('PROGRAMADA','CONFIRMADA','EN_CURSO','ATENDIDA','CANCELADA','NO_ASISTIO')),
   observaciones  VARCHAR(255),
   fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_cita_mascota     FOREIGN KEY (id_mascota)     REFERENCES mascota(id_mascota),
@@ -130,12 +111,11 @@ CREATE TABLE cita_servicio (
   id_servicio      INT NOT NULL,
   cantidad         INT NOT NULL DEFAULT 1,
   precio_unitario  DECIMAL(10,2) NOT NULL,
-  CONSTRAINT fk_cs_cita      FOREIGN KEY (id_cita)     REFERENCES cita(id_cita),
-  CONSTRAINT fk_cs_servicio  FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio),
+  CONSTRAINT fk_cs_cita     FOREIGN KEY (id_cita)     REFERENCES cita(id_cita),
+  CONSTRAINT fk_cs_servicio FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio),
   CONSTRAINT uq_cita_servicio UNIQUE (id_cita, id_servicio)
 );
 
--- Registro clinico
 CREATE TABLE consulta (
   id_consulta     SERIAL PRIMARY KEY,
   id_cita         INT NOT NULL UNIQUE,
@@ -170,7 +150,6 @@ CREATE TABLE vacuna (
   CONSTRAINT fk_vacuna_veterinario FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
 );
 
--- Facturacion
 CREATE TABLE factura (
   id_factura    SERIAL PRIMARY KEY,
   id_cita       INT NOT NULL UNIQUE,
@@ -180,22 +159,23 @@ CREATE TABLE factura (
   descuento     DECIMAL(12,2) NOT NULL DEFAULT 0,
   impuesto      DECIMAL(12,2) NOT NULL DEFAULT 0,
   total         DECIMAL(12,2) NOT NULL DEFAULT 0,
-  estado_pago   enum_estado_pago NOT NULL DEFAULT 'PENDIENTE',
+  estado_pago   VARCHAR(10) NOT NULL DEFAULT 'PENDIENTE'
+                   CHECK (estado_pago IN ('PENDIENTE','PAGADA','ANULADA')),
   CONSTRAINT fk_factura_cita    FOREIGN KEY (id_cita)    REFERENCES cita(id_cita),
   CONSTRAINT fk_factura_cliente FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
 
--- 4) DATOS DE EJEMPLO --------------------------------------------------
-INSERT INTO especie (nombre) VALUES ('Canino'), ('Felino'), ('Ave'), ('Roedor');
+-- 3) DATOS DE EJEMPLO
+INSERT INTO especie (nombre) VALUES ('Canino'),('Felino'),('Ave'),('Roedor');
 INSERT INTO raza (id_especie, nombre, tamano) VALUES
-  (1,'Labrador','GRANDE'), (1,'Chihuahua','PEQUENO'), (2,'Siames','MEDIANO');
+  (1,'Labrador','GRANDE'),(1,'Chihuahua','PEQUENO'),(2,'Siames','MEDIANO');
 INSERT INTO servicio (nombre, categoria, precio, duracion_min) VALUES
-  ('Consulta general','CONSULTA', 45000, 30),
-  ('Vacunacion','PREVENCION', 35000, 20),
-  ('Esterilizacion','CIRUGIA', 220000, 90),
-  ('Bano y peluqueria','ESTETICA', 50000, 60);
+  ('Consulta general','CONSULTA',45000,30),
+  ('Vacunacion','PREVENCION',35000,20),
+  ('Esterilizacion','CIRUGIA',220000,90),
+  ('Bano y peluqueria','ESTETICA',50000,60);
 
--- 5) COMPROBACION ------------------------------------------------------
+-- 4) COMPROBACION
 SELECT 'OK: ' || count(*) || ' tablas creadas' AS resultado
 FROM information_schema.tables
 WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
